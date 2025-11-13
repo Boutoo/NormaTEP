@@ -21,24 +21,34 @@ def _():
 @app.cell
 def _(pd):
     df = pd.read_csv('norm.csv')
-    return (df,)
+    filtered_df = df.copy()
+    return df, filtered_df
 
 
 @app.cell
-def _(df, mo):
-    measure = mo.ui.multiselect.from_series(df['Measure'])
-    time = mo.ui.multiselect.from_series(df['Time'])
-    cluster = mo.ui.multiselect.from_series(df['Cluster'])
-    band = mo.ui.multiselect.from_series(df['Band'])
+def _(filtered_df, mo):
     mo.md("<h1> Normative Tool <h2>")
-    return band, cluster, measure, time
+    KEYS = ['Measure', 'Time', 'Cluster', 'Band']
+    FILTERS = {
+        key: [] for key in KEYS
+    }
+
+    def on_filter_changed(key, x):
+        print(f"{key}: {x}")
+
+    def get_filters_ui():
+        FILTERS_UI = {
+            key: mo.ui.multiselect.from_series(filtered_df[key], on_change= lambda x: on_filter_changed(key, x)) for key in KEYS
+        }
+        return FILTERS_UI
+    return FILTERS, get_filters_ui
 
 
 @app.cell
-def _(band, cluster, measure, mo, time):
+def _(get_filters_ui, mo):
     def _():
         items = []
-        for item in [measure, time, cluster, band]:
+        for item in get_filters_ui().values():
             items.append(item)
         return mo.vstack(items)
     _()
@@ -46,10 +56,10 @@ def _(band, cluster, measure, mo, time):
 
 
 @app.cell
-def _(band, cluster, df, measure, time):
+def _(FILTERS, df):
     filt_df = df.copy()
-    for name, item in zip(['Measure', 'Time', 'Cluster', 'Band'], [measure, time, cluster, band]):
-        if item.value: filt_df = df[df[name].isin(item.value)]
+    for name, value in FILTERS.items():
+        if value: filt_df = df[df[name].isin(value)]
     filt_df
     return
 
