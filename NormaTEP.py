@@ -16,6 +16,7 @@ def _():
 @app.cell
 def _(mo, pd):
     stats_path = mo.notebook_location() / "public" / "normative_stats.csv"
+    print(stats_path)
     stats = pd.read_csv(str(stats_path))
     covariance_path = mo.notebook_location() / "public" / 'normative_covariance.csv'
     covariance = pd.read_csv(str(covariance_path))
