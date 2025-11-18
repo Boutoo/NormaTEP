@@ -13,12 +13,11 @@ def _():
 
 
 @app.cell
-def _(mo, pd):
-    stats_path = mo.notebook_location() / "public" / "normative_stats.csv"
-    print(stats_path)
-    stats = pd.read_csv(str(stats_path))
-    covariance_path = mo.notebook_location() / "public" / 'normative_covariance.csv'
-    covariance = pd.read_csv(str(covariance_path))
+def _(pd):
+    stats_path = "https://boutoo.github.io/NormaTEP/public/normative_stats.csv?raw=True"
+    stats = pd.read_csv(stats_path)
+    covariance_path = "https://boutoo.github.io/NormaTEP/public/normative_covariance.csv?raw=True"
+    covariance = pd.read_csv(covariance_path)
     return covariance, stats
 
 
