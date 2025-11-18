@@ -15,8 +15,8 @@ def _():
 
 @app.cell
 def _(mo, pd):
-    stats = pd.read_csv(mo.notebook_location() / "public" / "normative_stats.csv")
-    covariance = pd.read_csv(mo.notebook_location() / "public" / 'normative_covariance.csv')
+    stats = pd.read_csv(str(mo.notebook_location() / "public" / "normative_stats.csv"))
+    covariance = pd.read_csv(str(mo.notebook_location() / "public" / 'normative_covariance.csv'))
     return covariance, stats
 
 
@@ -151,7 +151,6 @@ def _(mo, stats):
                 value=defaults.get('Z-Score', "")
             ),
         })
-
     return (create_row,)
 
 
@@ -160,7 +159,7 @@ def _(create_row, get_rows, set_rows):
     def set_row_value(row_index, key, new_value):
         # 1. Get current state
         current_rows_list = get_rows()
-    
+
         # Guard clause: prevent index out of bounds
         if row_index < 0 or row_index >= len(current_rows_list):
             return
@@ -168,18 +167,18 @@ def _(create_row, get_rows, set_rows):
         # 2. Get the current data from the widget
         # .value extracts the dictionary: {'Measure': 'A', 'Value': 10, ...}
         row_data = current_rows_list[row_index].value.copy()
-    
+
         # 3. Update the specific key
         row_data[key] = new_value
-    
+
         # 4. Create a NEW widget for this row using the updated data
         new_row_widget = create_row(defaults=row_data)
-    
+
         # 5. Reconstruct the list and update state
         # We use a slice copy or list() to ensure a new reference
         updated_rows_list = list(current_rows_list)
         updated_rows_list[row_index] = new_row_widget
-    
+
         set_rows(updated_rows_list)
     return (set_row_value,)
 
