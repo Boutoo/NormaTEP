@@ -3,7 +3,6 @@ import marimo
 __generated_with = "0.17.7"
 app = marimo.App(width="medium", app_title="NormaTEP", auto_download=["html"])
 
-
 @app.cell
 def _():
     import marimo as mo
@@ -15,9 +14,9 @@ def _():
 @app.cell
 def _(pd):
     stats_path = "https://boutoo.github.io/NormaTEP/public/normative_stats.csv?raw=True"
-    stats = pd.read_csv(stats_path)
+    stats = pd.read_csv(stats_path, compression=None)
     covariance_path = "https://boutoo.github.io/NormaTEP/public/normative_covariance.csv?raw=True"
-    covariance = pd.read_csv(covariance_path)
+    covariance = pd.read_csv(covariance_path, compression=None)
     return covariance, stats
 
 
