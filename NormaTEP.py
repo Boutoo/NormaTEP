@@ -8,7 +8,6 @@ app = marimo.App(width="medium", app_title="NormaTEP", auto_download=["html"])
 def _():
     import marimo as mo
     import pandas as pd
-    import matplotlib.pyplot as plt
     import numpy as np
     return mo, np, pd
 
