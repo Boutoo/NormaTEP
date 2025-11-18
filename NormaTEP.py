@@ -15,8 +15,10 @@ def _():
 
 @app.cell
 def _(mo, pd):
-    stats = pd.read_csv(str(mo.notebook_location() / "public" / "normative_stats.csv"))
-    covariance = pd.read_csv(str(mo.notebook_location() / "public" / 'normative_covariance.csv'))
+    stats_path = mo.notebook_location() / "public" / "normative_stats.csv"
+    stats = pd.read_csv(str(stats_path))
+    covariance_path = mo.notebook_location() / "public" / 'normative_covariance.csv'
+    covariance = pd.read_csv(str(covariance_path))
     return covariance, stats
 
 
