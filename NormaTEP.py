@@ -8,8 +8,8 @@ def _():
     import marimo as mo
     import pandas as pd
     import numpy as np
-    return mo, np, pd
     from pyodide.http import open_url
+    return mo, np, pd, open_url
 
 @app.cell
 def _(pd):
