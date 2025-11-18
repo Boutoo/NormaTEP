@@ -13,9 +13,9 @@ def _():
 
 @app.cell
 def _(pd):
-    stats_path = "https://boutoo.github.io/NormaTEP/public/normative_stats.csv?raw=True"
+    stats_path = "https://boutoo.github.io/NormaTEP/public/normative_stats.csv"
     stats = pd.read_csv(stats_path, compression=None)
-    covariance_path = "https://boutoo.github.io/NormaTEP/public/normative_covariance.csv?raw=True"
+    covariance_path = "https://boutoo.github.io/NormaTEP/public/normative_covariance.csv"
     covariance = pd.read_csv(covariance_path, compression=None)
     return covariance, stats
 
