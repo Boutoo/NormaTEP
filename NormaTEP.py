@@ -9,14 +9,15 @@ def _():
     import pandas as pd
     import numpy as np
     return mo, np, pd
-
+    from pyodide.http import open_url
 
 @app.cell
 def _(pd):
+    # 1. Define your URLs
     stats_path = "https://boutoo.github.io/NormaTEP/public/normative_stats.csv"
-    stats = pd.read_csv(stats_path, compression=None)
-    covariance_path = "https://boutoo.github.io/NormaTEP/public/normative_covariance.csv"
-    covariance = pd.read_csv(covariance_path, compression=None)
+    cov_path = "https://boutoo.github.io/NormaTEP/public/normative_covariance.csv"
+    stats = pd.read_csv(open_url(stats_path))
+    covariance = pd.read_csv(open_url(cov_path))
     return covariance, stats
 
 
