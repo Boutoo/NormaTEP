@@ -22,11 +22,13 @@
             --text-color: #333;
             --accent-green: #2ecc71;
             --accent-red: #e74c3c;
+            --accent-purple: #9b59b6;
         }
 
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f4f6f9;
+            min-height: 100vh;
             color: var(--text-color);
             padding: 20px; 
         }
@@ -38,12 +40,12 @@
         }
 
         .table-card {
-            background: white;
+            background: rgba(255, 255, 255,0.75);
             border-radius: 8px; 
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
             padding: 20px; 
             border: none;
-            margin-bottom: 25px; /* Spacing between cards */
+            margin-bottom: 25px; 
         }
 
         h1 {
@@ -109,7 +111,6 @@
             color: #a71d2a;
         }
         
-        /* Badges for feature parts */
         .feature-badge {
             font-size: 0.75rem;
             font-weight: 500;
@@ -118,6 +119,72 @@
             padding: 2px 6px;
             border-radius: 4px;
             border: 1px solid #dee2e6;
+        }
+
+        /* --- VISUALIZATION BARS --- */
+        .viz-wrapper {
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }
+        .viz-bar-bg {
+            height: 8px;
+            width: 100%;
+            background: #e9ecef;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+        /* Z-Score Gradient: Red (-4) ... Green (0) ... Red (+4) */
+        /* Normal range is roughly -2 to +2 (middle 50%) */
+        .viz-z-gradient {
+            background: linear-gradient(90deg, 
+                #e74c3c 0%, 
+                #e74c3c 25%, 
+                #2ecc71 35%, 
+                #2ecc71 65%, 
+                #e74c3c 75%, 
+                #e74c3c 100%);
+        }
+        
+        .viz-marker {
+            position: absolute;
+            top: -4px;
+            width: 4px;
+            height: 16px;
+            background-color: #333;
+            border: 1px solid white;
+            border-radius: 2px;
+            transform: translateX(-50%);
+            transition: left 0.3s ease-out;
+            z-index: 10;
+        }
+        .viz-scale {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            color: #adb5bd;
+            margin-top: 2px;
+        }
+
+        /* Mahalanobis Section */
+        .mahalanobis-box {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px dashed #eee;
+        }
+        .d2-result {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-purple);
+            line-height: 1.2;
+        }
+        #p-val-display {
+            line-height: 1.2;
+        }
+        
+        .viz-d2-gradient {
+             /* Green to Red gradient */
+             background: linear-gradient(90deg, #2ecc71 0%, #f1c40f 60%, #e74c3c 90%);
         }
 
         /* --- COMPACT TABLE STYLING --- */
@@ -131,12 +198,20 @@
             padding: 8px 6px;   
             white-space: nowrap;
         }
+        
+        .dataTables_scroll {
+            background-image: url('./public/NormaTEP.png');
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-position: 50% 75%; /* Corrected from 'lower' */
+        }
 
         table.dataTable tbody td {
             vertical-align: middle;
             padding: 6px 6px;   
             font-size: 0.8rem;  
             line-height: 1.2;
+            background-color: rgba(255, 255, 255, 0.8);
         }
 
         /* Custom Button Styling */
@@ -168,16 +243,24 @@
 <body>
 
     <div class="main-container">
-        
-        <!-- Z-SCORE CALCULATOR SECTION -->
+        <nav class="navbar navbar-light bg-white mb-4 p-3 rounded shadow-sm">
+        <a class="navbar-brand" href="#">
+            <img src="./public/NormaTEP.png" width="45" height="45" class="d-inline-block align-items-center" alt="">
+            NormaTEP
+        </a>
+        <p class="subtitle">Interactive Z-Score and Mahalanobis Distance Calculator for TMS-EEG Evoked Potentials Statistical Features.</p>
+        </nav>
+
+        <br>
+        <!-- CALCULATOR SECTION -->
         <div class="table-card">
-            <h2>Z-Score Calculator</h2>
-            <p class="subtitle">Search for a feature permutation, add it, and input your value to see the Z-Score.</p>
+            <h2>Multivariate Calculator</h2>
+            <p class="subtitle">Search and add features to calculate Z-Scores and Mahalanobis Distance.</p>
             
             <div class="row mb-3 align-items-end">
                 <div class="col-md-8">
                     <label for="featureSearch" class="form-label small text-muted">Find Feature (Search by Measure, Band, Time, etc.)</label>
-                    <input class="form-control form-control-sm" list="featureOptions" id="featureSearch" placeholder="Type to search (e.g. 'Delta Early' or 'ERSP')">
+                    <input class="form-control form-control-sm" list="featureOptions" id="featureSearch" placeholder="Type to search (e.g. 'MFP Centro-Parietal Left' or 'ERSP')">
                     <datalist id="featureOptions">
                         <!-- Options will be populated by JS -->
                     </datalist>
@@ -191,6 +274,37 @@
             <div id="calculator-container">
                 <!-- Dynamic rows appear here -->
             </div>
+
+            <!-- Mahalanobis Result Section -->
+            <div class="mahalanobis-box" id="mahalanobis-section" style="display:none;">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <h5 class="mb-1">Mahalanobis Distance (D²)</h5>
+                        <p class="small text-muted mb-0">Calculated on covariance of selected features.</p>
+                    </div>
+                    
+                    <!-- D2 Visualizer -->
+                    <div class="col-md-4">
+                        <div class="viz-wrapper">
+                            <div class="viz-bar-bg viz-d2-gradient">
+                                <div id="d2-marker" class="viz-marker" style="left: 0%; display:none;"></div>
+                            </div>
+                            <div class="viz-scale">
+                                <span>0</span>
+                                <span>Significant Threshold</span>
+                                <span>High</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 text-end">
+                        <div class="d-flex flex-column align-items-end">
+                            <span id="d2-display" class="d2-result">-</span>
+                            <div id="p-val-display" class="small mt-1 fw-bold"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
 
@@ -202,15 +316,21 @@
             <div id="table-wrapper">
                 <div id="loading" class="text-center py-5">
                     <div class="spinner-border text-primary me-2" role="status"></div>
-                    <span class="text-muted">Loading large dataset...</span>
+                    <span class="text-muted">Loading datasets...</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- SCRIPTS -->
     <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    
+    <!-- Math.js for Matrix Algebra -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+
+    <!-- jStat for Statistical Probabilities (Chi-Square) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jstat/1.9.6/jstat.min.js"></script>
     
     <!-- DataTables -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
@@ -221,31 +341,60 @@
 
     <script>
         // --- CONFIGURATION ---
-        const csvFilePath = 'stats_data.csv'; 
+        const statsFile = './public/stats_data.csv'; 
+        const covFile = './public/covariance_data.csv'; 
+
+        // CONFIG: Friendly names for your columns
+        const columnRenames = {
+            "Normative_Mean": "Normative Mean",
+            "Normative_Std": "Normative Std Dev",
+            "diff": "Difference",
+            "tCI_5": "Confidence Interval (5%)",
+            "tCI_95": "Confidence Interval (95%)",
+            "corr": "Correlation",
+            "cor_5": "Corr (5%)",
+            "corr_95": "Corr (95%)",
+            "cv": "Coeff. of Variation",
+            "cv_5": "CV (5%)",
+            "cv_95": "CV (95%)",
+            "ICC": "Intraclass Corr.",
+            "ICC_5": "ICC (5%)",
+            "ICC_95": "ICC (95%)",
+            "SEM": "Standard Error of Measurement"
+        };
 
         // Global Data Store
         let globalData = [];
-        let featureMap = new Map(); // Fast lookup
+        let covMatrix = []; 
+        let featureMap = new Map(); 
         let meanCol = null;
         let stdCol = null;
-        let idColumns = []; // Columns that identify the feature (Measure, Time, Cluster...)
+        let idColumns = [];
+        let selectedFeatures = []; 
+
+        // --- HELPER: Load File Promise ---
+        function loadCSV(file) {
+            return new Promise((resolve, reject) => {
+                Papa.parse(file, {
+                    download: true,
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: (results) => resolve(results),
+                    error: (err) => reject(err)
+                });
+            });
+        }
 
         // --- HELPER: Find Columns ---
         function detectColumns(headers) {
-            // 1. Try to find common names for Mean
-            meanCol = headers.find(h => h.toLowerCase().match(/^(mean|avg|average)$/));
-            
-            // 2. Try to find common names for Std Dev
-            stdCol = headers.find(h => h.toLowerCase().match(/^(std|stdev|sd|standard deviation)$/));
-            
-            // 3. Identify all OTHER columns as "ID Columns" (The components of the feature)
-            if (meanCol && stdCol) {
-                idColumns = headers.filter(h => h !== meanCol && h !== stdCol);
-            } else {
-                console.warn("Could not auto-detect Mean or Std columns. Calculator might not work.");
-                // Fallback: Assume first column is ID
-                idColumns = [headers[0]];
-            }
+            meanCol = headers.find(h => h.toLowerCase().includes('normative_mean')) || headers.find(h => h.toLowerCase().match(/^(mean|avg|average)$/));
+            stdCol = headers.find(h => h.toLowerCase().includes('normative_std')) || headers.find(h => h.toLowerCase().match(/^(std|stdev|sd|standard deviation)$/));
+
+            const targetIds = ['Measure', 'Time', 'Band', 'Cluster', 'Region', 'Condition'];
+            idColumns = headers.filter(h => {
+                return targetIds.includes(h) && h !== meanCol && h !== stdCol;
+            });
+            if (idColumns.length === 0) idColumns = headers.slice(0, 4);
         }
 
         // --- CALCULATOR LOGIC ---
@@ -258,19 +407,32 @@
                 return;
             }
 
-            const rowData = featureMap.get(compositeKey);
-            const meanVal = parseFloat(rowData[meanCol]);
-            const stdVal = parseFloat(rowData[stdCol]);
-
-            if (isNaN(meanVal) || isNaN(stdVal)) {
-                alert(`Error: The selected feature has invalid stats.`);
+            if (selectedFeatures.some(f => f.key === compositeKey)) {
+                alert("Feature already added!");
                 return;
             }
 
-            // Create unique ID for DOM elements
+            const rowData = featureMap.get(compositeKey);
+            const meanVal = parseFloat(rowData[meanCol]);
+            const stdVal = parseFloat(rowData[stdCol]);
+            const originalIndex = rowData._originalIndex; 
+
+            if (isNaN(meanVal) || isNaN(stdVal)) {
+                alert(`Error: Feature has invalid stats.`);
+                return;
+            }
+
             const rowId = 'calc-row-' + Math.random().toString(36).substr(2, 9);
 
-            // Create Badges HTML for the labels
+            selectedFeatures.push({
+                key: compositeKey,
+                rowId: rowId,
+                rowIndex: originalIndex,
+                mean: meanVal,
+                std: stdVal,
+                userValue: null 
+            });
+
             let badgesHtml = '';
             idColumns.forEach(col => {
                 if (rowData[col]) {
@@ -281,17 +443,28 @@
             const html = `
                 <div class="calculator-row" id="${rowId}">
                     <div class="row align-items-center">
-                        <div class="col-md-5">
+                        <div class="col-md-4">
                             <div class="calc-label">${badgesHtml}</div>
                             <div class="calc-meta">Mean: ${meanVal.toFixed(3)} | SD: ${stdVal.toFixed(3)}</div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <input type="number" step="any" class="form-control form-control-sm" 
-                                placeholder="Your Value" 
-                                oninput="calculateZ('${rowId}', ${meanVal}, ${stdVal})">
+                                placeholder="Value" 
+                                oninput="updateCalculation('${rowId}', this.value)">
                         </div>
-                        <div class="col-md-3">
-                            <span class="small text-muted">Z-Score: </span>
+                        <div class="col-md-4">
+                            <div class="viz-wrapper">
+                                <div class="viz-bar-bg viz-z-gradient">
+                                    <div id="${rowId}-marker" class="viz-marker" style="left: 50%; display:none;"></div>
+                                </div>
+                                <div class="viz-scale">
+                                    <span>-4 SD</span>
+                                    <span>0</span>
+                                    <span>+4 SD</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-1 text-center">
                             <span class="z-score-display" id="${rowId}-result">-</span>
                         </div>
                         <div class="col-md-1 text-end">
@@ -302,106 +475,226 @@
             `;
 
             $('#calculator-container').append(html);
-            searchInput.value = ''; // Clear search
+            searchInput.value = ''; 
+            
+            checkMahalanobisVisibility();
         }
 
-        function calculateZ(rowId, mean, std) {
-            const input = document.querySelector(`#${rowId} input`).value;
+        function updateCalculation(rowId, valStr) {
+            const feature = selectedFeatures.find(f => f.rowId === rowId);
             const display = document.getElementById(`${rowId}-result`);
+            const marker = document.getElementById(`${rowId}-marker`);
             
-            if (input === "") {
+            if (valStr === "") {
+                feature.userValue = null;
                 display.innerText = "-";
                 display.style.color = "#333";
+                marker.style.display = 'none';
+                checkMahalanobisVisibility(); 
                 return;
             }
 
-            const val = parseFloat(input);
-            const z = (val - mean) / std;
+            const val = parseFloat(valStr);
+            feature.userValue = val;
             
-            display.innerText = z.toFixed(3);
+            const z = (val - feature.mean) / feature.std;
+            display.innerText = z.toFixed(2);
+            
+            if (Math.abs(z) > 1.96) display.style.color = "#e74c3c";
+            else display.style.color = "#2ecc71";
 
-            // Color Coding
-            if (Math.abs(z) > 1.96) { // 95% CI
-                display.style.color = "#e74c3c"; // Red for high deviation
-            } else {
-                display.style.color = "#2ecc71"; // Green for normal range
-            }
+            // Update Z Visualizer
+            // Range displayed is -4 to +4. Total range = 8.
+            // Center (0) is at 50%.
+            // Formula: (z + 4) / 8 * 100
+            let percent = ((z + 4) / 8) * 100;
+            // Clamp between 0 and 100
+            percent = Math.max(0, Math.min(100, percent));
+            
+            marker.style.left = percent + "%";
+            marker.style.display = 'block';
+
+            calculateMahalanobis();
         }
 
         function removeRow(rowId) {
             document.getElementById(rowId).remove();
+            selectedFeatures = selectedFeatures.filter(f => f.rowId !== rowId);
+            checkMahalanobisVisibility();
+            calculateMahalanobis(); 
         }
 
+        function checkMahalanobisVisibility() {
+            const section = document.getElementById('mahalanobis-section');
+            if (covMatrix.length > 0 && selectedFeatures.length > 1) {
+                section.style.display = 'block';
+            } else {
+                section.style.display = 'none';
+            }
+        }
 
-        // --- MAIN LOAD LOGIC ---
-        Papa.parse(csvFilePath, {
-            download: true,
-            header: true,
-            skipEmptyLines: true,
-            complete: function(results) {
-                globalData = results.data;
+        function calculateMahalanobis() {
+            const validFeatures = selectedFeatures.filter(f => f.userValue !== null && !isNaN(f.userValue));
+            const d2Display = document.getElementById('d2-display');
+            const pDisplay = document.getElementById('p-val-display');
+            const marker = document.getElementById('d2-marker');
+            
+            if (validFeatures.length < 2 || validFeatures.length !== selectedFeatures.length) {
+                d2Display.innerText = "-";
+                pDisplay.innerText = "";
+                marker.style.display = 'none';
+                return; 
+            }
 
-                if (globalData.length === 0) {
-                    $('#table-wrapper').html('<p class="text-danger">No data found</p>');
-                    return;
+            try {
+                // Calculation Logic
+                const x = validFeatures.map(f => f.userValue);
+                const mu = validFeatures.map(f => f.mean);
+                const diff = math.subtract(x, mu); 
+
+                const k = validFeatures.length; 
+                let subCov = [];
+
+                for (let i = 0; i < k; i++) {
+                    let row = [];
+                    for (let j = 0; j < k; j++) {
+                        const idx1 = validFeatures[i].rowIndex;
+                        const idx2 = validFeatures[j].rowIndex;
+                        
+                        if (!covMatrix[idx1] || typeof covMatrix[idx1][idx2] === 'undefined') {
+                            throw new Error("Covariance index out of bounds");
+                        }
+                        row.push(parseFloat(covMatrix[idx1][idx2]));
+                    }
+                    subCov.push(row);
                 }
 
-                const headers = Object.keys(globalData[0]);
-                detectColumns(headers);
+                const invCov = math.inv(subCov);
+                const step1 = math.multiply(diff, invCov); 
+                const d2 = math.multiply(step1, diff);     
 
-                // Populate Feature Map & Search Datalist
-                const dataList = document.getElementById('featureOptions');
+                // --- RESULTS & P-VALUE ---
+                d2Display.innerText = d2.toFixed(3);
+                const pVal = 1 - jStat.chisquare.cdf(d2, k);
+
+                let pText = "p = " + pVal.toFixed(3);
+                if (pVal < 0.001) pText = "p < 0.001";
+
+                if (pVal < 0.05) {
+                    d2Display.style.color = "#dc3545"; 
+                    pDisplay.style.color = "#dc3545";
+                    pDisplay.innerHTML = `${pText} <span class="badge bg-danger ms-1">Significant</span>`;
+                } else {
+                    d2Display.style.color = "#2ecc71"; 
+                    pDisplay.style.color = "#6c757d"; 
+                    pDisplay.innerHTML = pText;
+                }
+
+                // --- D2 VISUALIZATION ---
+                // We want to scale the D2 bar relative to the Critical Value (Significance Threshold)
+                // Calculate Critical Value for p=0.05
+                const criticalValue = jStat.chisquare.inv(0.95, k);
                 
-                globalData.forEach(row => {
-                    // Create composite Key for search and lookup
-                    // Joins all ID columns: "ERSP - Early - Delta"
-                    const compositeKey = idColumns.map(col => row[col]).join(' - ');
-                    
-                    if(compositeKey) {
-                        featureMap.set(compositeKey, row);
-                        const option = document.createElement('option');
-                        option.value = compositeKey;
-                        dataList.appendChild(option);
-                    }
-                });
-
-                // --- TABLE INIT ---
-                const columns = headers.map(header => ({ 
-                    title: header, 
-                    data: header,
-                    render: function(data, type, row) {
-                        if (type === 'display' && !isNaN(parseFloat(data)) && isFinite(data)) {
-                            return parseFloat(data).toFixed(3); 
-                        }
-                        return data;
-                    }
-                }));
-
-                $('#table-wrapper').html('<table id="statsTable" class="table table-hover table-sm" style="width:100%"></table>');
+                // Let's set the visual range from 0 to CriticalValue * 1.5
+                // So the "Significant" point is at 66% of the bar width
+                const maxScale = criticalValue * 1.5;
+                let percent = (d2 / maxScale) * 100;
+                percent = Math.max(0, Math.min(100, percent));
                 
-                $('#statsTable').DataTable({
-                    data: globalData,
-                    columns: columns,
-                    scrollX: true,
-                    fixedHeader: true,
-                    pageLength: 25,
-                    lengthMenu: [25, 50, 100, 200],
-                    dom: '<"row mb-2"<"col-md-6"B><"col-md-6"f>>rt<"row mt-2"<"col-md-6"i><"col-md-6"p>>',
-                    buttons: [
-                        {
-                            extend: 'colvis',
-                            text: 'Filter Columns ▾', 
-                            className: 'btn btn-secondary', 
-                            collectionLayout: 'fixed two-column' 
-                        }
-                    ],
-                    language: {
-                        search: "",
-                        searchPlaceholder: "Search rows..."
-                    }
-                });
+                marker.style.left = percent + "%";
+                marker.style.display = 'block';
+
+            } catch (err) {
+                console.error(err);
+                d2Display.innerText = "Error";
+                marker.style.display = 'none';
             }
+        }
+
+        // --- MAIN INIT ---
+        Promise.all([
+            loadCSV(statsFile),
+            new Promise((resolve, reject) => {
+                Papa.parse(covFile, {
+                    download: true,
+                    header: false, 
+                    skipEmptyLines: true,
+                    dynamicTyping: true, 
+                    complete: (results) => resolve(results),
+                    error: (err) => reject(err)
+                });
+            })
+        ]).then(([statsResults, covResults]) => {
+            
+            globalData = statsResults.data;
+            
+            let rawCov = covResults.data;
+            if (rawCov.length > 0 && typeof rawCov[0][0] === 'string') {
+                rawCov = rawCov.slice(1);
+                rawCov = rawCov.map(row => row.slice(1));
+            }
+            covMatrix = rawCov;
+
+            if (globalData.length === 0) {
+                $('#table-wrapper').html('<p class="text-danger">No data found in Stats file</p>');
+                return;
+            }
+
+            const headers = Object.keys(globalData[0]);
+            detectColumns(headers);
+
+            const dataList = document.getElementById('featureOptions');
+            globalData.forEach((row, index) => {
+                const compositeKey = idColumns.map(col => row[col]).join(', ');
+                row._originalIndex = index;
+                if(compositeKey) {
+                    featureMap.set(compositeKey, row);
+                    const option = document.createElement('option');
+                    option.value = compositeKey;
+                    dataList.appendChild(option);
+                }
+            });
+
+            const columns = headers.map(header => ({ 
+                title: columnRenames[header] || header, 
+                data: header,
+                render: function(data, type, row) {
+                    if (type === 'display' && !isNaN(parseFloat(data)) && isFinite(data)) {
+                        return parseFloat(data).toFixed(3); 
+                    }
+                    return data;
+                }
+            }));
+
+            $('#table-wrapper').html('<table id="statsTable" class="table table-hover table-sm" style="width:100%"></table>');
+            
+            $('#statsTable').DataTable({
+                data: globalData,
+                columns: columns,
+                scrollX: true,
+                fixedHeader: true,
+                pageLength: 25,
+                lengthMenu: [25, 50, 100, 200],
+                dom: '<"row mb-2"<"col-md-6"B><"col-md-6"f>>rt<"row mt-2"<"col-md-6"i><"col-md-6"p>>',
+                buttons: [
+                    {
+                        extend: 'colvis',
+                        text: 'Filter Columns ▾', 
+                        className: 'btn btn-secondary', 
+                        collectionLayout: 'fixed two-column' 
+                    }
+                ],
+                language: {
+                    search: "",
+                    searchPlaceholder: "Search rows..."
+                }
+            });
+
+        }).catch(err => {
+            console.error(err);
+            $('#loading').html(`<p class="text-danger">Error loading files. Ensure <b>${statsFile}</b> and <b>${covFile}</b> exist.</p>`);
         });
+
     </script>
 </body>
 </html>
