@@ -2,55 +2,403 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Stats Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistical Features Explorer</title>
+    
+    <!-- Bootstrap 5 CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
+    <!-- DataTables Bootstrap 5 Integration -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <!-- DataTables Buttons CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+    
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
     <style>
-        body { padding: 20px; }
-        /* Prevent long text from breaking layout */
-        table.dataTable td { white-space: nowrap; } 
+        :root {
+            --primary-color: #4a90e2; 
+            --header-bg: #f8f9fa;
+            --text-color: #333;
+            --accent-green: #2ecc71;
+            --accent-red: #e74c3c;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f6f9;
+            color: var(--text-color);
+            padding: 20px; 
+        }
+
+        .main-container {
+            max-width: 100%; 
+            margin: 0 auto;
+            padding: 0 10px;
+        }
+
+        .table-card {
+            background: white;
+            border-radius: 8px; 
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            padding: 20px; 
+            border: none;
+            margin-bottom: 25px; /* Spacing between cards */
+        }
+
+        h1 {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 1.5rem; 
+            color: #1a1a1a;
+        }
+
+        h2 {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        p.subtitle {
+            color: #6c757d;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        /* --- CALCULATOR STYLES --- */
+        .calculator-row {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #e9ecef;
+            transition: all 0.2s;
+        }
+        .calculator-row:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .calc-label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #495057;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        .calc-meta {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+        .z-score-display {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #333;
+        }
+        .btn-remove {
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+        .btn-remove:hover {
+            color: #a71d2a;
+        }
+        
+        /* Badges for feature parts */
+        .feature-badge {
+            font-size: 0.75rem;
+            font-weight: 500;
+            background-color: #e9ecef;
+            color: #495057;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+
+        /* --- COMPACT TABLE STYLING --- */
+        table.dataTable thead th {
+            background-color: var(--header-bg);
+            border-bottom: 2px solid #e9ecef !important;
+            color: #495057;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem; 
+            padding: 8px 6px;   
+            white-space: nowrap;
+        }
+
+        table.dataTable tbody td {
+            vertical-align: middle;
+            padding: 6px 6px;   
+            font-size: 0.8rem;  
+            line-height: 1.2;
+        }
+
+        /* Custom Button Styling */
+        .dt-buttons .btn-secondary {
+            background-color: white;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            font-weight: 500;
+            font-size: 0.85rem; 
+            padding: 4px 10px;  
+        }
+        .dt-buttons .btn-secondary:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        div.dt-button-collection {
+            width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        div.dataTables_filter input {
+            font-size: 0.85rem;
+            padding: 4px 10px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="container-fluid">
-        <h1>Feature Statistics</h1>
-        <div id="table-container">
-            <div class="text-center mt-5">Loading data...</div>
+    <div class="main-container">
+        
+        <!-- Z-SCORE CALCULATOR SECTION -->
+        <div class="table-card">
+            <h2>Z-Score Calculator</h2>
+            <p class="subtitle">Search for a feature permutation, add it, and input your value to see the Z-Score.</p>
+            
+            <div class="row mb-3 align-items-end">
+                <div class="col-md-8">
+                    <label for="featureSearch" class="form-label small text-muted">Find Feature (Search by Measure, Band, Time, etc.)</label>
+                    <input class="form-control form-control-sm" list="featureOptions" id="featureSearch" placeholder="Type to search (e.g. 'Delta Early' or 'ERSP')">
+                    <datalist id="featureOptions">
+                        <!-- Options will be populated by JS -->
+                    </datalist>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-primary btn-sm w-100" id="btnAddFeature" onclick="addFeatureRow()">+ Add to Calculator</button>
+                </div>
+            </div>
+
+            <!-- Calculator Rows Container -->
+            <div id="calculator-container">
+                <!-- Dynamic rows appear here -->
+            </div>
+        </div>
+
+
+        <!-- DATA TABLE SECTION -->
+        <div class="table-card">
+            <h1>Feature Statistics</h1>
+            <p class="subtitle">Use the "Filter Columns" button to hide/show stats.</p>
+            
+            <div id="table-wrapper">
+                <div id="loading" class="text-center py-5">
+                    <div class="spinner-border text-primary me-2" role="status"></div>
+                    <span class="text-muted">Loading large dataset...</span>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    
+    <!-- DataTables -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.colVis.min.js"></script>
 
     <script>
-        // REPLACE THIS WITH YOUR CSV FILE PATH
-        const csvFilePath = './norm.csv'; 
+        // --- CONFIGURATION ---
+        const csvFilePath = 'stats_data.csv'; 
 
+        // Global Data Store
+        let globalData = [];
+        let featureMap = new Map(); // Fast lookup
+        let meanCol = null;
+        let stdCol = null;
+        let idColumns = []; // Columns that identify the feature (Measure, Time, Cluster...)
+
+        // --- HELPER: Find Columns ---
+        function detectColumns(headers) {
+            // 1. Try to find common names for Mean
+            meanCol = headers.find(h => h.toLowerCase().match(/^(mean|avg|average)$/));
+            
+            // 2. Try to find common names for Std Dev
+            stdCol = headers.find(h => h.toLowerCase().match(/^(std|stdev|sd|standard deviation)$/));
+            
+            // 3. Identify all OTHER columns as "ID Columns" (The components of the feature)
+            if (meanCol && stdCol) {
+                idColumns = headers.filter(h => h !== meanCol && h !== stdCol);
+            } else {
+                console.warn("Could not auto-detect Mean or Std columns. Calculator might not work.");
+                // Fallback: Assume first column is ID
+                idColumns = [headers[0]];
+            }
+        }
+
+        // --- CALCULATOR LOGIC ---
+        function addFeatureRow() {
+            const searchInput = document.getElementById('featureSearch');
+            const compositeKey = searchInput.value;
+            
+            if (!compositeKey || !featureMap.has(compositeKey)) {
+                alert("Please select a valid feature from the list.");
+                return;
+            }
+
+            const rowData = featureMap.get(compositeKey);
+            const meanVal = parseFloat(rowData[meanCol]);
+            const stdVal = parseFloat(rowData[stdCol]);
+
+            if (isNaN(meanVal) || isNaN(stdVal)) {
+                alert(`Error: The selected feature has invalid stats.`);
+                return;
+            }
+
+            // Create unique ID for DOM elements
+            const rowId = 'calc-row-' + Math.random().toString(36).substr(2, 9);
+
+            // Create Badges HTML for the labels
+            let badgesHtml = '';
+            idColumns.forEach(col => {
+                if (rowData[col]) {
+                    badgesHtml += `<span class="feature-badge">${col}: ${rowData[col]}</span>`;
+                }
+            });
+
+            const html = `
+                <div class="calculator-row" id="${rowId}">
+                    <div class="row align-items-center">
+                        <div class="col-md-5">
+                            <div class="calc-label">${badgesHtml}</div>
+                            <div class="calc-meta">Mean: ${meanVal.toFixed(3)} | SD: ${stdVal.toFixed(3)}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="number" step="any" class="form-control form-control-sm" 
+                                placeholder="Your Value" 
+                                oninput="calculateZ('${rowId}', ${meanVal}, ${stdVal})">
+                        </div>
+                        <div class="col-md-3">
+                            <span class="small text-muted">Z-Score: </span>
+                            <span class="z-score-display" id="${rowId}-result">-</span>
+                        </div>
+                        <div class="col-md-1 text-end">
+                            <span class="btn-remove" onclick="removeRow('${rowId}')">&times;</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            $('#calculator-container').append(html);
+            searchInput.value = ''; // Clear search
+        }
+
+        function calculateZ(rowId, mean, std) {
+            const input = document.querySelector(`#${rowId} input`).value;
+            const display = document.getElementById(`${rowId}-result`);
+            
+            if (input === "") {
+                display.innerText = "-";
+                display.style.color = "#333";
+                return;
+            }
+
+            const val = parseFloat(input);
+            const z = (val - mean) / std;
+            
+            display.innerText = z.toFixed(3);
+
+            // Color Coding
+            if (Math.abs(z) > 1.96) { // 95% CI
+                display.style.color = "#e74c3c"; // Red for high deviation
+            } else {
+                display.style.color = "#2ecc71"; // Green for normal range
+            }
+        }
+
+        function removeRow(rowId) {
+            document.getElementById(rowId).remove();
+        }
+
+
+        // --- MAIN LOAD LOGIC ---
         Papa.parse(csvFilePath, {
             download: true,
             header: true,
             skipEmptyLines: true,
             complete: function(results) {
-                // Generate table headers dynamically based on CSV keys
-                let columns = [];
-                let headers = Object.keys(results.data[0]);
+                globalData = results.data;
+
+                if (globalData.length === 0) {
+                    $('#table-wrapper').html('<p class="text-danger">No data found</p>');
+                    return;
+                }
+
+                const headers = Object.keys(globalData[0]);
+                detectColumns(headers);
+
+                // Populate Feature Map & Search Datalist
+                const dataList = document.getElementById('featureOptions');
                 
-                headers.forEach(header => {
-                    columns.push({ title: header, data: header });
+                globalData.forEach(row => {
+                    // Create composite Key for search and lookup
+                    // Joins all ID columns: "ERSP - Early - Delta"
+                    const compositeKey = idColumns.map(col => row[col]).join(' - ');
+                    
+                    if(compositeKey) {
+                        featureMap.set(compositeKey, row);
+                        const option = document.createElement('option');
+                        option.value = compositeKey;
+                        dataList.appendChild(option);
+                    }
                 });
 
-                // Initialize DataTable
-                $('#table-container').html('<table id="statsTable" class="table table-striped table-bordered" style="width:100%"></table>');
+                // --- TABLE INIT ---
+                const columns = headers.map(header => ({ 
+                    title: header, 
+                    data: header,
+                    render: function(data, type, row) {
+                        if (type === 'display' && !isNaN(parseFloat(data)) && isFinite(data)) {
+                            return parseFloat(data).toFixed(3); 
+                        }
+                        return data;
+                    }
+                }));
+
+                $('#table-wrapper').html('<table id="statsTable" class="table table-hover table-sm" style="width:100%"></table>');
                 
                 $('#statsTable').DataTable({
-                    data: results.data,
+                    data: globalData,
                     columns: columns,
-                    scrollX: true, // Enable horizontal scrolling for many columns
-                    pageLength: 25, // Default rows per page
-                    order: [[0, 'asc']] // Default sort by first column
+                    scrollX: true,
+                    fixedHeader: true,
+                    pageLength: 25,
+                    lengthMenu: [25, 50, 100, 200],
+                    dom: '<"row mb-2"<"col-md-6"B><"col-md-6"f>>rt<"row mt-2"<"col-md-6"i><"col-md-6"p>>',
+                    buttons: [
+                        {
+                            extend: 'colvis',
+                            text: 'Filter Columns ▾', 
+                            className: 'btn btn-secondary', 
+                            collectionLayout: 'fixed two-column' 
+                        }
+                    ],
+                    language: {
+                        search: "",
+                        searchPlaceholder: "Search rows..."
+                    }
                 });
             }
         });
