@@ -151,32 +151,35 @@
             background: #e9ecef;
             border-radius: 4px;
             position: relative;
-            overflow: hidden;
         }
         /* Z-Score Gradient: Red (-4) ... Green (0) ... Red (+4) */
-        /* Normal range is roughly -2 to +2 (middle 50%) */
         .viz-z-gradient {
             background: linear-gradient(90deg, 
                 #e74c3c 0%, 
-                #e74c3c 25%, 
-                #2ecc71 35%, 
-                #2ecc71 65%, 
-                #e74c3c 75%, 
+                #e74c3c 20%, 
+                #2ecc71 30%, 
+                #2ecc71 70%, 
+                #e74c3c 80%, 
                 #e74c3c 100%);
         }
         
         .viz-marker {
             position: absolute;
-            top: -4px;
-            width: 4px;
-            height: 16px;
-            background-color: #333;
-            border: 1px solid white;
-            border-radius: 2px;
+            top: -10px;
+            width: 0;
+            height: 0;
+            background-color: transparent;
+            border: none;
+            border-left: 7px solid transparent;
+            border-right: 7px solid transparent;
+            border-top: 10px solid var(--text-color);             
+            border-radius: 0;
             transform: translateX(-50%);
             transition: left 0.3s ease-out;
             z-index: 10;
+            filter: drop-shadow(0 1px 0px white); 
         }
+        
         .viz-scale {
             display: flex;
             justify-content: space-between;
