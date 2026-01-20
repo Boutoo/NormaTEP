@@ -156,10 +156,10 @@
         .viz-z-gradient {
             background: linear-gradient(90deg, 
                 #e74c3c 0%, 
-                #e74c3c 20%, 
+                #e74c3c 2.5%, 
                 #2ecc71 30%, 
                 #2ecc71 70%, 
-                #e74c3c 80%, 
+                #e74c3c 97.5%, 
                 #e74c3c 100%);
         }
         
@@ -507,9 +507,9 @@
                                     <div id="${rowId}-marker" class="viz-marker" style="left: 50%; display:none;"></div>
                                 </div>
                                 <div class="viz-scale">
-                                    <span>-4 SD</span>
+                                    <span>&le; -3 SD</span>
                                     <span>0</span>
-                                    <span>+4 SD</span>
+                                    <span>&ge; +3 SD</span>
                                 </div>
                             </div>
                         </div>
@@ -553,10 +553,10 @@
             else display.style.color = "#2ecc71";
 
             // Update Z Visualizer
-            // Range displayed is -4 to +4. Total range = 8.
+            // Range displayed is -3 to +3. Total range = 6.
             // Center (0) is at 50%.
-            // Formula: (z + 4) / 8 * 100
-            let percent = ((z + 4) / 8) * 100;
+            // Formula: (z + 3) / 6 * 100
+            let percent = ((z + 3) / 6) * 100;
             // Clamp between 0 and 100
             percent = Math.max(0, Math.min(100, percent));
             
