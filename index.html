@@ -17,8 +17,8 @@
 
     <style>
         :root {
-            --primary-color: #4a90e2; 
-            --header-bg: #f8f9fa;
+            --primary-color: #087E8B;
+            --header-bg: #087e8b52;
             --text-color: #333;
             --accent-green: #2ecc71;
             --accent-red: #e74c3c;
@@ -27,7 +27,7 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f4f6f9;
+            background-color: var(bg);
             min-height: 100vh;
             color: var(--text-color);
             padding: 20px; 
@@ -37,6 +37,17 @@
             max-width: 100%; 
             margin: 0 auto;
             padding: 0 10px;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.8rem;
+            color: var(--primary-color);
+        }
+
+        .navbar-brand:hover {
+            color: var(--header-bg);
+            text-decoration: none;
         }
 
         .table-card {
@@ -101,8 +112,16 @@
             font-size: 1.1rem;
             color: #333;
         }
+        .btn {
+            background-color: var(--primary-color);
+            border: none;
+        }
+        .btn:hover {
+            background-color: var(--header-bg);
+        }
+
         .btn-remove {
-            color: #dc3545;
+            color: var(--accent-red);
             cursor: pointer;
             font-size: 1.2rem;
             line-height: 1;
@@ -238,6 +257,33 @@
             font-size: 0.85rem;
             padding: 4px 10px;
         }
+
+        .page-link {
+            background-color: var(--header-bg);
+            color: var(--primary-color);
+        }
+
+        .active>.page-link, .page-link.active {
+            background-color: var(--primary-color);
+            border: 1px solid var(--header-bg);
+            color: white;
+        }
+
+        .page-link:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .page-link:active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .page-link:focus {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
     </style>
 </head>
 <body>
@@ -245,10 +291,10 @@
     <div class="main-container">
         <nav class="navbar navbar-light bg-white mb-4 p-3 rounded shadow-sm">
         <a class="navbar-brand" href="#">
-            <img src="./public/NormaTEP.png" width="45" height="45" class="d-inline-block align-items-center" alt="">
+            <img src="./public/NormaTEP.png" width="52" height="52" class="d-inline-block align-items-center" alt="">
             NormaTEP
         </a>
-        <p class="subtitle">Interactive Z-Score and Mahalanobis Distance Calculator for TMS-EEG Evoked Potentials Statistical Features.</p>
+        <p class="subtitle">Interactive Z-Score and Mahalanobis Distance Calculator for TMS-EEG Evoked Potentials Statistical Features</p>
         </nav>
 
         <br>
@@ -310,7 +356,7 @@
 
         <!-- DATA TABLE SECTION -->
         <div class="table-card">
-            <h1>Feature Statistics</h1>
+            <h2>Feature Statistics</h2>
             <p class="subtitle">Use the "Filter Columns" button to hide/show stats.</p>
             
             <div id="table-wrapper">
@@ -679,7 +725,7 @@
                 buttons: [
                     {
                         extend: 'colvis',
-                        text: 'Filter Columns ▾', 
+                        text: 'Filter Columns', 
                         className: 'btn btn-secondary', 
                         collectionLayout: 'fixed two-column' 
                     }
