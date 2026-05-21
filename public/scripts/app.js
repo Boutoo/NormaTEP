@@ -1,6 +1,7 @@
 const statsFile = "./public/stats_data.csv";
 const covFile = "./public/covariance_data.csv";
 const tablePageSize = 25;
+const observedValueStep = 0.001;
 
 const referenceContext = Object.freeze({
     studies: 9,
@@ -119,6 +120,7 @@ function bindEvents() {
         }
     });
 
+    dom.calculatorContainer.addEventListener("beforeinput", handleCalculatorBeforeInput);
     dom.calculatorContainer.addEventListener("input", handleCalculatorInput);
     dom.calculatorContainer.addEventListener("click", handleCalculatorActions);
 
@@ -707,6 +709,7 @@ function addFeatureByKey(compositeKey, options = {}) {
         mean: meanValue,
         std: stdValue,
         userValue: null,
+        userInput: "",
         badges: appState.idColumns
             .filter((column) => rowData[column])
             .map((column) => ({
@@ -833,11 +836,42 @@ function handleCalculatorInput(event) {
         return;
     }
 
-    feature.userValue = event.target.value === "" ? null : Number(event.target.value);
-    renderCalculator();
+    const observedInputValue = sanitizeObservedInputValue(event.target.value);
+
+    if (event.target.value !== observedInputValue) {
+        event.target.value = observedInputValue;
+    }
+
+    setObservedValue(feature, observedInputValue);
+    updateCalculatorRowOutput(feature);
+    updateSelectionInsights();
+    renderMahalanobis();
+}
+
+function handleCalculatorBeforeInput(event) {
+    const input = event.target.closest("[data-value-input]");
+
+    if (!input || !event.data || event.inputType.startsWith("delete") || event.inputType.startsWith("history")) {
+        return;
+    }
+
+    const selectionStart = input.selectionStart ?? input.value.length;
+    const selectionEnd = input.selectionEnd ?? input.value.length;
+    const nextValue = `${input.value.slice(0, selectionStart)}${event.data}${input.value.slice(selectionEnd)}`;
+
+    if (!isPotentialObservedFloatInput(nextValue)) {
+        event.preventDefault();
+    }
 }
 
 function handleCalculatorActions(event) {
+    const stepButton = event.target.closest("[data-value-step]");
+
+    if (stepButton) {
+        handleObservedValueStep(stepButton);
+        return;
+    }
+
     const button = event.target.closest("[data-remove-row]");
 
     if (!button) {
@@ -874,6 +908,9 @@ function renderCalculatorRows() {
 
 function renderCalculatorRow(feature) {
     const zScore = getZScoreData(feature);
+    const inputId = `${feature.rowId}-input`;
+    const observedInputValue = getObservedInputValue(feature);
+    const observedInputInvalid = isObservedInputInvalid(observedInputValue);
     const badgesMarkup = feature.badges.length
         ? feature.badges.map((badge) => (
             `<span class="feature-badge">${escapeHtml(badge.label)}: ${escapeHtml(badge.value)}</span>`
@@ -893,25 +930,51 @@ function renderCalculatorRow(feature) {
             </div>
 
             <div class="calculator-row-body">
-                <label class="value-field">
-                    <span>Observed value</span>
-                    <input
-                        type="number"
-                        step="any"
-                        class="form-control"
-                        data-value-input="${feature.rowId}"
-                        value="${formatInputValue(feature.userValue)}"
-                        placeholder="Enter value"
-                    >
-                </label>
+                <div class="value-field">
+                    <label for="${inputId}">Observed value</label>
+                    <div class="observed-input-shell">
+                        <input
+                            type="text"
+                            inputmode="decimal"
+                            autocomplete="off"
+                            class="form-control observed-value-input"
+                            id="${inputId}"
+                            data-value-input="${feature.rowId}"
+                            value="${escapeHtmlAttribute(observedInputValue)}"
+                            placeholder="Enter value"
+                            pattern="[+-]?([0-9]+([.,][0-9]*)?|[.,][0-9]+)"
+                            aria-invalid="${observedInputInvalid ? "true" : "false"}"
+                        >
+                        <div class="observed-stepper" role="group" aria-label="Adjust observed value">
+                            <button
+                                class="observed-step-button observed-step-button-up"
+                                type="button"
+                                data-value-step="${feature.rowId}"
+                                data-step-direction="up"
+                                aria-label="Increase observed value"
+                            >
+                                <span aria-hidden="true"></span>
+                            </button>
+                            <button
+                                class="observed-step-button observed-step-button-down"
+                                type="button"
+                                data-value-step="${feature.rowId}"
+                                data-step-direction="down"
+                                aria-label="Decrease observed value"
+                            >
+                                <span aria-hidden="true"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="viz-wrapper">
                     <div class="viz-header">
                         <span>Z-score position</span>
-                        <strong>${zScore.caption}</strong>
+                        <strong data-z-caption="${feature.rowId}">${zScore.caption}</strong>
                     </div>
                     <div class="viz-bar-bg viz-z-gradient">
-                        <div class="viz-marker" style="${zScore.markerStyle}"></div>
+                        <div class="viz-marker" data-z-marker="${feature.rowId}" style="${zScore.markerStyle}"></div>
                     </div>
                     <div class="viz-scale">
                         <span>&le; -3 SD</span>
@@ -922,11 +985,73 @@ function renderCalculatorRow(feature) {
 
                 <div class="score-panel">
                     <span>Z-score</span>
-                    <strong class="z-score-display ${zScore.className}">${zScore.text}</strong>
+                    <strong class="z-score-display ${zScore.className}" data-z-score="${feature.rowId}">${zScore.text}</strong>
                 </div>
             </div>
         </article>
     `;
+}
+
+function handleObservedValueStep(button) {
+    const rowId = button.dataset.valueStep;
+    const feature = appState.selectedFeatures.find((item) => item.rowId === rowId);
+
+    if (!feature) {
+        return;
+    }
+
+    const direction = button.dataset.stepDirection === "down" ? -1 : 1;
+    const currentValue = isFiniteNumber(feature.userValue) ? Number(feature.userValue) : 0;
+    const nextValue = roundObservedStep(currentValue + (direction * observedValueStep));
+    const nextInputValue = formatObservedStepValue(nextValue);
+    const input = button.closest(".calculator-row")?.querySelector("[data-value-input]");
+
+    setObservedValue(feature, nextInputValue);
+
+    if (input) {
+        input.value = nextInputValue;
+        input.focus();
+    }
+
+    updateCalculatorRowOutput(feature);
+    updateSelectionInsights();
+    renderMahalanobis();
+}
+
+function setObservedValue(feature, rawValue) {
+    feature.userInput = rawValue;
+    feature.userValue = parseObservedFloat(rawValue);
+}
+
+function updateCalculatorRowOutput(feature) {
+    const row = document.getElementById(feature.rowId);
+
+    if (!row) {
+        return;
+    }
+
+    const zScore = getZScoreData(feature);
+    const caption = row.querySelector("[data-z-caption]");
+    const marker = row.querySelector("[data-z-marker]");
+    const score = row.querySelector("[data-z-score]");
+    const input = row.querySelector("[data-value-input]");
+
+    if (caption) {
+        caption.textContent = zScore.caption;
+    }
+
+    if (marker) {
+        marker.setAttribute("style", zScore.markerStyle);
+    }
+
+    if (score) {
+        score.textContent = zScore.text;
+        score.className = `z-score-display ${zScore.className}`;
+    }
+
+    if (input) {
+        input.setAttribute("aria-invalid", isObservedInputInvalid(input.value) ? "true" : "false");
+    }
 }
 
 function getZScoreData(feature) {
@@ -1280,7 +1405,74 @@ function formatInputValue(value) {
     return value === null || value === undefined || Number.isNaN(value) ? "" : String(value);
 }
 
+function getObservedInputValue(feature) {
+    return typeof feature.userInput === "string" ? feature.userInput : formatInputValue(feature.userValue);
+}
+
+function parseObservedFloat(value) {
+    const normalizedValue = normalizeObservedNumber(value);
+
+    if (!normalizedValue || !isObservedFloat(normalizedValue)) {
+        return null;
+    }
+
+    const numericValue = Number(normalizedValue);
+    return Number.isFinite(numericValue) ? numericValue : null;
+}
+
+function normalizeObservedNumber(value) {
+    return String(value ?? "").trim().replace(",", ".");
+}
+
+function sanitizeObservedInputValue(value) {
+    return String(value ?? "").split("").reduce((cleanValue, character) => {
+        if ((character === "+" || character === "-") && cleanValue === "") {
+            return character;
+        }
+
+        if ((character === "." || character === ",") && !cleanValue.includes(".") && !cleanValue.includes(",")) {
+            return `${cleanValue}${character}`;
+        }
+
+        if (/\d/.test(character)) {
+            return `${cleanValue}${character}`;
+        }
+
+        return cleanValue;
+    }, "");
+}
+
+function isObservedFloat(value) {
+    return /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(value);
+}
+
+function isPotentialObservedFloatInput(value) {
+    const normalizedValue = normalizeObservedNumber(value);
+    return /^[+-]?(?:\d+(?:\.\d*)?|\.\d*|\d*)$/.test(normalizedValue);
+}
+
+function isObservedInputInvalid(value) {
+    const normalizedValue = normalizeObservedNumber(value);
+    return normalizedValue !== "" && !isPotentialObservedFloatInput(normalizedValue);
+}
+
+function roundObservedStep(value) {
+    return Math.round((value + Number.EPSILON) / observedValueStep) * observedValueStep;
+}
+
+function formatObservedStepValue(value) {
+    return String(Number(value.toFixed(6)));
+}
+
 function isFiniteNumber(value) {
+    if (value === null || value === undefined) {
+        return false;
+    }
+
+    if (typeof value === "string" && value.trim() === "") {
+        return false;
+    }
+
     return Number.isFinite(Number(value));
 }
 

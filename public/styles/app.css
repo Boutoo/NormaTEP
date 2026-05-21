@@ -677,6 +677,93 @@ a {
     color: var(--ink-800);
 }
 
+.value-field label {
+    margin: 0;
+}
+
+.observed-input-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 46px;
+    min-height: 56px;
+    overflow: hidden;
+    border: 1px solid rgba(41, 65, 77, 0.16);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.observed-input-shell:focus-within {
+    border-color: rgba(15, 124, 115, 0.4);
+    box-shadow: 0 0 0 0.24rem rgba(15, 124, 115, 0.12);
+}
+
+.observed-value-input {
+    min-height: 56px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.observed-value-input:focus {
+    border-color: transparent;
+    box-shadow: none;
+    outline: none;
+}
+
+.observed-value-input[aria-invalid="true"] {
+    color: var(--danger);
+}
+
+.observed-stepper {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    border-left: 1px solid rgba(41, 65, 77, 0.12);
+    background: rgba(241, 247, 244, 0.92);
+}
+
+.observed-step-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 46px;
+    min-height: 28px;
+    border: 0;
+    background: transparent;
+    color: var(--ink-800);
+    cursor: pointer;
+}
+
+.observed-step-button:hover,
+.observed-step-button:focus-visible {
+    background: var(--primary-soft);
+    color: var(--primary-dark);
+}
+
+.observed-step-button:focus-visible {
+    outline: 2px solid rgba(15, 124, 115, 0.42);
+    outline-offset: -2px;
+}
+
+.observed-step-button-up {
+    border-bottom: 1px solid rgba(41, 65, 77, 0.12);
+}
+
+.observed-step-button span {
+    display: block;
+    width: 0;
+    height: 0;
+    border-right: 5px solid transparent;
+    border-left: 5px solid transparent;
+}
+
+.observed-step-button-up span {
+    border-bottom: 7px solid currentColor;
+}
+
+.observed-step-button-down span {
+    border-top: 7px solid currentColor;
+}
+
 .viz-panel,
 .viz-wrapper {
     padding: 4px 0;
