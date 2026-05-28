@@ -321,6 +321,10 @@ a {
     border-radius: var(--radius-md);
 }
 
+.note-card-wide {
+    grid-column: 1 / -1;
+}
+
 .note-card span,
 .summary-label,
 .insight-card span,
